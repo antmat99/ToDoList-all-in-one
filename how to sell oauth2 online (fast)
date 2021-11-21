@@ -1,0 +1,45 @@
+Google oauth2
+https://developers.google.com/identity/protocols/oauth2/native-app?hl=en
+
+Per prima cosa bisogna chiedere il codice di autorizzazione (quello che credevamo fosse il token), che poi allegheremo a una richiesta per ottenere il token e per farne il refresh.
+Per farlo si manda una richiesta a https://accounts.google.com/o/oauth2/v2/auth come spiega qui:
+https://developers.google.com/identity/protocols/oauth2/native-app?hl=en#step-2:-send-a-request-to-googles-oauth-2.0-server
+
+Il parametro che permette di specificare dove far arrivare il token è redirect_uri. Se lo mettiamo su http://localhost:numeroporta viene mandato su quella porta di localhost.
+Io per esempio ho attivato un server.js con nodemon e vedo che viene fatta una richiesta GET a / e come parametro viene dato il codice.
+
+--- Esempio pratico 1 ---
+
+Si fa questa richiesta:
+https://accounts.google.com/o/oauth2/v2/auth?client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&response_type=code&scope=https://www.googleapis.com/auth/calendar&redirect_uri=http://localhost:3001&code_challenge=1111111111111111111111111111111111111111111&challenge_method=plain
+
+[
+Nota:
+il code_challenge è un codice che specifichi qui e che dovrai rimandare alla richiesta spiegata dopo. Dev'essere di 43 cifre minimo. Andrebbe cifrato, ma sticazzi, quindi mettiamo challenge_method=plain per dire che non lo cifriamo.
+]
+
+Su localhost:3001 si ottiene
+GET /?code=4/0AX4XfWhhQrL18O1zbtfgnBFeT2u3IA3Dq1y9Sf9ZHspQqH6p0QcyApcSaVYnGrCBR36V4A&scope=https://www.googleapis.com/auth/calendar
+dove code dovrebbe essere il codice che ci serve.
+
+--- Cosa fare dopo aver preso l'auth code ---
+
+Continuare da qui:
+https://developers.google.com/identity/protocols/oauth2/native-app?hl=en#exchange-authorization-code
+
+Bisogna mandare una richiesta POST a https://oauth2.googleapis.com/token con i parametri specificati nel link. Come code_verifier si mette lo stesso della richiesta precedente.
+Come risposta (stavolta nel body, non serve più localhost) si ottengono token e cose per il refresh che dobbiamo vedere come usare.
+
+--- Esempio pratico 2 ---
+
+Si fa questa richiesta:
+https://oauth2.googleapis.com/token?code=4/0AX4XfWjAjN1UERyUAVleqZ6ytZjpa-McHAftbmYl8pmgG6ZDgbClxbn1EmV4ApEznaArTA&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:3001&code_verifier=11111111111111111111111111111111111111111111
+
+E si ottiene una risposta del genere:
+{
+    "access_token": "ya29.a0ARrdaM-7dhFqlQ4ri-UBZ1quVlDJTYEqRDH3BogG1JWZpK-GGsgyjNSS0oAqwns8tQgaBHOl-dptNEIFs1Qq1nMVnstTBhUK4YhZTx-p43nLwj1jU2mwBIYw29jNQ1c9LbmcW4gepf2VxZEVYvdR4Yk6gbBY",
+    "expires_in": 3599,
+    "refresh_token": "1//0d1AvPw1Zy11hCgYIARAAGA0SNwF-L9IrDoLoQCkcRiIfD7sI-3r1K7LPZ7iqFyqa6f2lm7oYHL2QilVXmz1GCUq02u4yCF38WPw",
+    "scope": "https://www.googleapis.com/auth/calendar",
+    "token_type": "Bearer"
+}
