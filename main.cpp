@@ -5,12 +5,14 @@
 #include <QtNetwork/QNetworkReply>
 #include <stdio.h>
 #include <stdlib.h>
+#include <curl/curl.h>
 #include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
 #include <cpp-httplib-master/httplib.h>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QUrlQuery>
 #include <thread>
 
 using namespace curlpp::options;
@@ -24,7 +26,7 @@ void listener(){
     std::cout<<"server on"<<std::endl;
     httplib::Server svr;
     svr.Get("/", [](const httplib::Request & req, httplib::Response &res) {
-        res.set_content("Hello World!", "text/plain");
+        res.set_content("Puoi chiudere questa pagina !", "text/plain");
         t_code = req.get_param_value("code");
         //std::cout<<t_code<<std::endl;
         cv.notify_all();
@@ -36,61 +38,52 @@ void listener(){
 }
 
 //questa funzione viene svegliata quando c'è risposta nella get fatta sopra
-//e cambia il valore della var
-//anzichè cambiare la variabile devo prendere la var globale e inserirgli il token code
-//cosi da fare la post e poi ottenere l'access token tramite post
+//e cambia il valore di t_code
+//cosicchè posso fare una post con tutti i parametri che mi servono
 void change(){
-    std::cout<<"qui"<<std::endl;
     std::unique_lock<std::mutex> ul(m);
     cv.wait(ul);
-    std::cout<<t_code<<std::endl;
+    //se mi trovo qui, mi sono svegliato
+    //std::cout<<t_code<<std::endl;
     std::cout<<"-----"<<std::endl;
-    //qui devo fare la post
+    //qui devo fare la post, uso libreria curlpp
 
-    // QUI USO LIBRERIA CURLPP MA DA ERRROE 404/400
-    // PROBABLY PERCHE I PARAMS SONO PASSATI MALE
-    /*try {
+    try {
         curlpp::Cleanup cleaner;
         curlpp::Easy request;
-
-        request.setOpt(new curlpp::options::Url("https://oauth2.googleapis.com/"));
+        
+        //imposto i parametri
+        request.setOpt(new curlpp::options::Url(std::string("https://oauth2.googleapis.com/token?code="+t_code+"&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:8080&code_verifier=1111111111111111111111111111111111111111111").c_str()));
         request.setOpt(new curlpp::options::Verbose(true));
 
+        //TODO: dubbio sul content-type: text plain o application json?
         std::list<std::string> header;
-        header.push_back("Content-Type: application/json");
-
+        header.push_back("Content-Type: text/plain");
+        //imposto header
         request.setOpt(new curlpp::options::HttpHeader(header));
-        std::string payload = "token?code="+t_code+"&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:8080&code_verifier=1111111111111111111111111111111111111111111";
-        request.setOpt(new curlpp::options::PostFields(payload));
-        request.setOpt(new curlpp::options::PostFieldSize(payload.length()));
+        //specifico che il body è vuoto
+        request.setOpt(new curlpp::options::PostFields("\r"));
+        request.setOpt(new curlpp::options::PostFieldSize(0));
 
+        //metto da parte la risposta che otterrò
+        std::ostringstream response;
+        //il body della risposta alla post viene salvato in response
+        request.setOpt(new curlpp::options::WriteStream(&response));
+
+        //eseguo post
         request.perform();
-      }
-      catch ( curlpp::LogicError & e ) {
-        std::cout << e.what() << std::endl;
-      }
-      catch ( curlpp::RuntimeError & e ) {
-        std::cout << e.what() << std::endl;
-      }
-      */
+        std::cout<<"-----------"<<std::endl;
+        //stampa del body
+        std::cout<<response.str()<<std::endl;
 
-    // QUA PROVO A USARE LIBRERIA QNETWORK MA CRASHA
-    // FORSE PERCHÈ I PARAMS SONO PASSATI MALE
-    /*
-    std::string txt = "token?code="+t_code+"&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:8080&code_verifier=1111111111111111111111111111111111111111111";
-    const char* aa = txt.c_str();
-    QByteArray payload = QByteArrayLiteral(aa);
-    QNetworkAccessManager man;
-    QNetworkRequest req(QUrl("https://oauth2.googleapis.com/"));
-    QNetworkReply* reply =man.post(req, payload);
-    QObject::connect(reply,&QNetworkReply::finished,[&](){
-        QByteArray read = reply->readAll(); //read contiene il contenuto della risposta
-        //si usa il metodo toStdString() per convertire read a stringa
-        std::cout << "Got response:\n" << read.toStdString() << std::endl;
-        reply->close();
-        reply->deleteLater();
-    });
-    */
+    }
+    catch ( curlpp::LogicError & e ) {
+        std::cout << e.what() << std::endl;
+    }
+    catch ( curlpp::RuntimeError & e ) {
+        std::cout << e.what() << std::endl;
+    }
+
     ul.unlock();
 }
 
@@ -114,8 +107,5 @@ int main(int argc, char *argv[]){
     t1.join();
     t2.join();
 
-    //una volta ottenuto il token code, devo fare una post a
-    //https://oauth2.googleapis.com/token?code=QUI_METTI_TOKEN_CODE&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:8080&code_verifier=1111111111111111111111111111111111111111111
-    //per ottenere l'access token
 
 }
