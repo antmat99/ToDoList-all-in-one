@@ -100,10 +100,12 @@ void change(){
         //splitto per prendere i parametri che mi servono
         std::vector<std::string> v = split(body.str(), " ");
 
+        //salvo le var che userò per inserirle nelle varie richieste
         a_code = v[3];      //access_token
         exp_in = v[6];      //expires_in
         r_token = v[9];     //refresh_token
 
+        //elimino "" e , siccome ho splittato il testo da json
         a_code.erase(std::remove(a_code.begin(), a_code.end(), '\"'), a_code.end());
         a_code.erase(std::remove(a_code.begin(), a_code.end(), ','), a_code.end());
         exp_in.erase(std::remove(exp_in.begin(), exp_in.end(), ','), exp_in.end());
