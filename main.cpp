@@ -14,11 +14,32 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <thread>
+#include <vector>
 
 using namespace curlpp::options;
 std::mutex m;
 std::condition_variable cv;
 std::string t_code = "";
+std::string a_code = "";
+std::string r_token ="";
+std::string exp_in = "";
+std::ostringstream body;
+
+// for string delimiter
+std::vector<std::string> split (std::string s, std::string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
+
+    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
+        token = s.substr (pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+}
 
 //funzione che viene passata al thread per ottenere il token code da inserire poi nella post
 void listener(){
@@ -68,13 +89,27 @@ void change(){
         //metto da parte la risposta che otterrò
         std::ostringstream response;
         //il body della risposta alla post viene salvato in response
-        request.setOpt(new curlpp::options::WriteStream(&response));
+        request.setOpt(new curlpp::options::WriteStream(&body));
 
         //eseguo post
         request.perform();
         std::cout<<"-----------"<<std::endl;
         //stampa del body
-        std::cout<<response.str()<<std::endl;
+        std::cout<<body.str()<<std::endl;
+
+        //splitto per prendere i parametri che mi servono
+        std::vector<std::string> v = split(body.str(), " ");
+
+        a_code = v[3];      //access_token
+        exp_in = v[6];      //expires_in
+        r_token = v[9];     //refresh_token
+
+        a_code.erase(std::remove(a_code.begin(), a_code.end(), '\"'), a_code.end());
+        a_code.erase(std::remove(a_code.begin(), a_code.end(), ','), a_code.end());
+        exp_in.erase(std::remove(exp_in.begin(), exp_in.end(), ','), exp_in.end());
+        r_token.erase(std::remove(r_token.begin(), r_token.end(), '\"'), r_token.end());
+        r_token.erase(std::remove(r_token.begin(), r_token.end(), ','), r_token.end());
+
 
     }
     catch ( curlpp::LogicError & e ) {
