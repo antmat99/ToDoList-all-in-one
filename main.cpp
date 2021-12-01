@@ -127,10 +127,10 @@ void change(){
 
 int main(int argc, char *argv[]){
 
-    QApplication a(argc, argv);
-    MainWindow w;
-    //w.show();
-    //return a.exec();
+    QApplication app(argv, args);
+    Window window;
+    window.show();
+    return app.exec();
 
     //apre il browser con il link passato
     QDesktopServices::openUrl(QUrl("https://accounts.google.com/o/oauth2/v2/auth?client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&response_type=code&scope=https://www.googleapis.com/auth/calendar&redirect_uri=http://localhost:8080&code_challenge=1111111111111111111111111111111111111111111&challenge_method=plain"));
