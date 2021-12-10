@@ -1,5 +1,6 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "mainwindow.h"
+#include "mynetwork.h"
 #include <QApplication>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
@@ -72,7 +73,7 @@ void change(){
     try {
         curlpp::Cleanup cleaner;
         curlpp::Easy request;
-        
+
         //imposto i parametri
         request.setOpt(new curlpp::options::Url(std::string("https://oauth2.googleapis.com/token?code="+t_code+"&client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&client_secret=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&grant_type=authorization_code&redirect_uri=http://localhost:8080&code_verifier=1111111111111111111111111111111111111111111").c_str()));
         request.setOpt(new curlpp::options::Verbose(true));
@@ -122,15 +123,28 @@ void change(){
     }
 
     ul.unlock();
+    cv.notify_all();
+}
+
+void getConQ(){
+    std::unique_lock<std::mutex> ul(m);
+    cv.wait(ul);
+    //se mi trovo qui, vuol dire che dopo la post posso fare la get
+    std::cout<<"---get---"<<std::endl;
+    MyNetwork network;
+    network.makeGetRequest("https://www.polito.it");
+    //std::string tmp = network.getMiao();
+    //std::cout<<"GET request done. Result is: \n"+tmp<<std::endl;
+    cv.notify_all();
 }
 
 
 int main(int argc, char *argv[]){
 
-    QApplication app(argv, args);
-    Window window;
-    window.show();
-    return app.exec();
+    QApplication a(argc, argv);
+    MainWindow w;
+    //w.show();
+
 
     //apre il browser con il link passato
     QDesktopServices::openUrl(QUrl("https://accounts.google.com/o/oauth2/v2/auth?client_id=1034786735866-o2d6ot6i3mvvrvt2rck9qent1a32odnb.apps.googleusercontent.com&response_type=code&scope=https://www.googleapis.com/auth/calendar&redirect_uri=http://localhost:8080&code_challenge=1111111111111111111111111111111111111111111&challenge_method=plain"));
@@ -141,8 +155,12 @@ int main(int argc, char *argv[]){
     //questo thread viene usato per prendere il token e metterlo nella post
     std::thread t2{change};
 
+    //creo un thread che fa get con qnetwork
+    std::thread t3{getConQ};
+
     t1.join();
     t2.join();
+    t3.join();
 
-
+    return a.exec();
 }
