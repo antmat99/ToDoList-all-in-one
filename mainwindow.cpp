@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 #include <QCalendarWidget>
 #include <QCheckBox>
@@ -12,10 +13,14 @@
 #include <QTextEdit>
 #include <QPushButton>
 
-//! [0]
+
 Window::Window(QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent),
+      ui(new Ui::MainWindow)
 {
+
+
+
     createPreviewGroupBox();
     createGeneralOptionsGroupBox();
     createTextFormatsGroupBox();
@@ -23,26 +28,26 @@ Window::Window(QWidget *parent)
     QTextEdit *textEdit = new QTextEdit();
     QGridLayout *layout = new QGridLayout;
     layout->addWidget(previewGroupBox, 0, 0);
-    layout->addWidget(generalOptionsGroupBox, 0, 1);
-    layout->addWidget(textEdit, 1, 0, 1, 1);
+    //layout->addWidget(generalOptionsGroupBox, 0, 2);
+    layout->addWidget(textEdit,0,1) ;
     //textEdit->setEnabled(false);
     QPushButton *button1 = new QPushButton("Add task");
     QPushButton *button2 = new QPushButton("Modify task");
     QPushButton *button3 = new QPushButton("Remove task");
-    layout->addWidget(textFormatsGroupBox, 1, 1);
-    layout->addWidget(button1, 1/2, 1/2,0,10);
-    layout->addWidget(button2, 1/2, 3/2,0,10);
-    layout->addWidget(button3, 1/2, 2,0,10);
+    //layout->addWidget(textFormatsGroupBox, 1,2);
+    layout->addWidget(button1, 3,1);
+    layout->addWidget(button2, 2,1);
+    layout->addWidget(button3, 1,1);
     layout->setSizeConstraint(QLayout::SetFixedSize);
     setLayout(layout);
 
-    previewLayout->setRowMinimumHeight(0, calendar->sizeHint().height());
+    previewLayout->setRowMinimumHeight(1, calendar->sizeHint().height());
     previewLayout->setColumnMinimumWidth(0, calendar->sizeHint().width());
 
     setWindowTitle(tr("Calendar Widget"));
+    connect(button1, SIGNAL(on_mMyButton_clicked()), this, SLOT(openNewWindow()));
 }
 //! [0]
-
 
 void Window::localeChanged(int index)
 {
