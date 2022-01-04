@@ -1,0 +1,5 @@
+void API::shareCalendar(std::string calendar_id, std::string user_email){
+    std::string url = std::string("https://www.googleapis.com/calendar/v3/calendars/"+calendar_id+"/acl?access_token="+a_code);
+    std::string requestBody = std::string("{\"role\":\"owner\",\"scope\":{\"type\":\"user\",\"value\":\""+user_email+"\"}}");
+    network->makePostRequest(url.c_str(),QByteArray(requestBody.c_str()));
+}//shareCalendar
